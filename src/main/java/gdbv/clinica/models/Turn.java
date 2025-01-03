@@ -19,6 +19,9 @@ public class Turn {
     private LocalTime app_time;
     private LocalDate app_date;
 
+    @OneToOne
+    private User user;
+
     @ManyToOne
     @JoinColumn(name = "patient_id")
     private Patient patient;

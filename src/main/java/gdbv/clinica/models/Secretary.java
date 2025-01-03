@@ -4,5 +4,8 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "secretaries", schema = "clinics")
 public class Secretary extends Person{
-    private String sector;
+    private String field;
+
+    @OneToOne
+    private User user;
 }
