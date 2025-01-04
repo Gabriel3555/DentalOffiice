@@ -7,7 +7,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "doctors", schema = "clinica")
-public class Doctor extends Person{
+public class Doctor extends UserOwner{
 
     @OneToOne
     @JoinColumn(name="schedule_id", referencedColumnName = "id")
@@ -15,5 +15,6 @@ public class Doctor extends Person{
 
     @OneToMany(mappedBy = "doctor", orphanRemoval = true, cascade = CascadeType.ALL)
     private List<Turn> turns = new ArrayList<>();
+
 
 }
