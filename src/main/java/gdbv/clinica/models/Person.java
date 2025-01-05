@@ -13,11 +13,21 @@ public abstract class Person {
     private Long id;
 
     private String name;
+
+    @Column(name = "last_name")
     private String lastName;
+
+    @Column(name = "phone_number")
     private String phoneNumber;
     private String email;
     private String address;
+
+    @Column(name = "born_date")
     private LocalDate bornDate;
+
+    @OneToOne(optional = true)
+    @JoinColumn(name="user_id", referencedColumnName = "id")
+    private User user;
 
     protected Person(){
         bornDate = LocalDate.now();

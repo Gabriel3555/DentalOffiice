@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Entity
 @Table(name = "secretaries", schema = "clinica")
-public class Secretary extends UserOwner{
-    private String field;
+public class Secretary extends Person {
 
+    private String field;
 }

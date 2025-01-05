@@ -1,6 +1,5 @@
 package gdbv.clinica.models;
 
-import gdbv.clinica.enums.Role;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,11 +13,26 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String user_name;
-    private String password;
-    private Role role;
+    @Column(name = "user_name")
+    private String userName;
 
-    @OneToOne
-    @JoinColumn(name = "owner", referencedColumnName = "id")
-    private UserOwner owner;
+    private String password;
+    private String role;
+
+    @OneToOne(optional = true) // Relación opcional con Doctor
+    @JoinColumn(name = "doctor_id", referencedColumnName = "id")
+    private Doctor doctor;
+
+    @OneToOne(optional = true) // Relación opcional con Secretary
+    @JoinColumn(name = "secretary_id", referencedColumnName = "id")
+    private Secretary secretary;
+
+    // Método para validar que solo uno de los dos atributos esté asignado
+    @PrePersist
+    @PreUpdate
+    private void validateReferences() {
+        if (doctor != null && secretary != null) {
+            throw new IllegalStateException("A user cannot reference both a doctor and a secretary at the same time.");
+        }
+    }
 }
