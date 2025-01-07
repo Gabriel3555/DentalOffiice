@@ -21,53 +21,51 @@ public class LoginService {
             em.getTransaction().begin();
 
             // Get the user ID
-            List<Long> userIds = em.createQuery(
+            Long userId = em.createQuery(
                             "SELECT u.id FROM User u WHERE u.userName = :username AND u.password = :password AND u.role = :role",
                             Long.class
                     )
                     .setParameter("username", username)
                     .setParameter("password", password)
                     .setParameter("role", role)
-                    .getResultList();
+                    .getSingleResult();
 
-            if (userIds.isEmpty()) {
+            if (userId == null) {
                 System.out.println("User not found.");
                 return null;
             }
 
-            Long userId = userIds.get(0);
-
             // Get role-specific information
             if (role.equals("Doctor")) {
-                List<Object[]> doctorData = em.createQuery(
-                                "SELECT d.id, d.name, d.lastName, d.email, d.phoneNumber, d.address, d.user.id " +
+                Object[] doctorData = em.createQuery(
+                                "SELECT d.id, d.name, d.lastName, d.email, d.phoneNumber, d.address, d.bornDate, d.schedule.id, d.user.id " +
                                         "FROM Doctor d WHERE d.user.id = :userId",
                                 Object[].class
                         )
                         .setParameter("userId", userId)
-                        .getResultList();
+                        .getSingleResult();
 
-                if (doctorData.isEmpty()) {
+                if (doctorData == null) {
                     System.out.println("Doctor not found for user ID: " + userId);
                     return null;
                 }
 
-                return doctorData.get(0);
+                return doctorData;
             } else if (role.equals("Secretaria")) {
-                List<Object[]> secretaryData = em.createQuery(
+                Object[] secretaryData = em.createQuery(
                                 "SELECT s.id, s.name, s.lastName, s.email, s.phoneNumber, s.address, s.bornDate, s.field, s.user.id " +
                                         "FROM Secretary s WHERE s.user.id = :userId",
                                 Object[].class
                         )
                         .setParameter("userId", userId)
-                        .getResultList();
+                        .getSingleResult();
 
-                if (secretaryData.isEmpty()) {
+                if (secretaryData == null) {
                     System.out.println("Secretary not found for user ID: " + userId);
                     return null;
                 }
 
-                return secretaryData.get(0);
+                return secretaryData;
             }
 
             return null;
