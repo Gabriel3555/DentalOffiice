@@ -26,12 +26,11 @@ public class DoctorService {
             em = emf.createEntityManager();
             em.getTransaction().begin();
 
-            // Validar datos del doctor (agregar más validaciones según sea necesario)
             if (doctor.getName() == null || doctor.getLastName() == null || doctor.getEmail() == null) {
                 throw new DoctorException("Nombre, apellido y correo electrónico son obligatorios.");
             }
 
-            em.persist(schedule); // Persistir el horario primero
+            em.persist(schedule);
             doctor.setSchedule(schedule);
             em.persist(doctor);
             em.getTransaction().commit();
@@ -57,12 +56,11 @@ public class DoctorService {
             em = emf.createEntityManager();
             em.getTransaction().begin();
 
-            // Validar datos del doctor (agregar más validaciones según sea necesario)
             if (doctor.getName() == null || doctor.getLastName() == null || doctor.getEmail() == null) {
                 throw new DoctorException("Nombre, apellido y correo electrónico son obligatorios.");
             }
 
-            em.merge(doctor); // Usar merge para actualizar un doctor existente
+            em.merge(doctor);
             em.getTransaction().commit();
 
         } catch (Exception e) {
@@ -131,7 +129,7 @@ public class DoctorService {
                     .setParameter("date", date)
                     .setParameter("time", time);
             Long count = query.getSingleResult();
-            return count == 0; // Disponible si no hay turnos programados
+            return count == 0;
         } catch (Exception e) {
             throw new DoctorException("Error al verificar la disponibilidad del doctor: " + e.getMessage(), e);
         } finally {

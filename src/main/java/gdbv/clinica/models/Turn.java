@@ -30,7 +30,7 @@ public class Turn {
     @JoinColumn(name = "doctor_id")
     private Doctor doctor;
 
-    protected Turn(){
+    public Turn(){
         app_time = LocalTime.now();
         app_date = LocalDate.now();
     }

@@ -4,8 +4,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
 
-import java.util.List;
-
 public class LoginService {
 
     private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("clinicaPersistenceUnit");
@@ -20,7 +18,6 @@ public class LoginService {
             em = getEntityManager();
             em.getTransaction().begin();
 
-            // Get the user ID
             Long userId = em.createQuery(
                             "SELECT u.id FROM User u WHERE u.userName = :username AND u.password = :password AND u.role = :role",
                             Long.class
@@ -35,7 +32,6 @@ public class LoginService {
                 return null;
             }
 
-            // Get role-specific information
             if (role.equals("Doctor")) {
                 Object[] doctorData = em.createQuery(
                                 "SELECT d.id, d.name, d.lastName, d.email, d.phoneNumber, d.address, d.bornDate, d.schedule.id, d.user.id " +

@@ -26,7 +26,6 @@ public class PatientService {
             em = emf.createEntityManager();
             em.getTransaction().begin();
 
-            // Validaciones básicas
             if (patient.getName() == null || patient.getLastName() == null) {
                 throw new Exception("Nombre y apellido son obligatorios.");
             }
@@ -35,15 +34,12 @@ public class PatientService {
                 throw new Exception("La fecha de nacimiento es obligatoria.");
             }
 
-            // Calcular edad
             int age = calculateAge(patient.getBornDate());
 
-            // Si el paciente es menor de edad, validar que tenga un responsable
             if (age < 18 && responsible == null) {
                 throw new Exception("Los pacientes menores de edad deben tener un responsable asignado.");
             }
 
-            // Si hay un responsable, persistirlo primero
             if (responsible != null) {
                 em.persist(responsible);
                 patient.setResponsible(responsible);
@@ -72,7 +68,6 @@ public class PatientService {
             em = emf.createEntityManager();
             em.getTransaction().begin();
 
-            // Validaciones básicas
             if (patient.getName() == null || patient.getLastName() == null) {
                 throw new Exception("Nombre y apellido son obligatorios.");
             }
@@ -81,16 +76,13 @@ public class PatientService {
                 throw new Exception("La fecha de nacimiento es obligatoria.");
             }
 
-            // Verificar si el paciente existe
             Patient existingPatient = em.find(Patient.class, patient.getId());
             if (existingPatient == null) {
                 throw new Exception("Paciente no encontrado.");
             }
 
-            // Calcular edad
             int age = calculateAge(patient.getBornDate());
 
-            // Si el paciente es menor de edad, validar que tenga un responsable
             if (age < 18 && patient.getResponsible() == null) {
                 throw new Exception("Los pacientes menores de edad deben tener un responsable asignado.");
             }
@@ -122,7 +114,6 @@ public class PatientService {
                 throw new Exception("Paciente no encontrado.");
             }
 
-            // Verificar si tiene turnos pendientes antes de eliminar
             List<Turn> pendingTurns = getPendingTurns(patientId);
             if (!pendingTurns.isEmpty()) {
                 throw new Exception("No se puede eliminar el paciente porque tiene turnos pendientes.");
@@ -143,7 +134,6 @@ public class PatientService {
         }
     }
 
-    // Método para obtener la edad actual de un paciente
     public int getPatientAge(Long patientId) throws Exception {
         EntityManager em = null;
         try {
@@ -160,7 +150,6 @@ public class PatientService {
         }
     }
 
-    // Método para buscar pacientes por rango de edad
     public List<Patient> searchPatientsByAgeRange(int minAge, int maxAge) throws Exception {
         EntityManager em = null;
         try {
@@ -218,7 +207,6 @@ public class PatientService {
         }
     }
 
-    // Método para obtener estadísticas de pacientes con/sin obra social
     public Map<String, Long> getInsuranceStatistics() throws Exception {
         EntityManager em = null;
         try {
@@ -252,7 +240,6 @@ public class PatientService {
         }
     }
 
-    // Método utilitario para calcular la edad
     private int calculateAge(LocalDate birthDate) {
         if (birthDate == null) {
             return 0;
@@ -260,7 +247,6 @@ public class PatientService {
         return Period.between(birthDate, LocalDate.now()).getYears();
     }
 
-    // Método para obtener todos los pacientes menores de edad
     public List<Patient> getMinorPatients() throws Exception {
         EntityManager em = null;
         try {
@@ -281,7 +267,6 @@ public class PatientService {
         }
     }
 
-    // Método para verificar si un paciente es menor de edad
     public boolean isMinor(Long patientId) throws Exception {
         return getPatientAge(patientId) < 18;
     }
