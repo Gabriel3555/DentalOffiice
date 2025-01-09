@@ -124,6 +124,10 @@ public class Controller {
         return persistenceController.getTurnById(turnId);
     }
 
+    public List<Turn> getTurnsByIdDoctor(Long id) throws Exception {
+        return persistenceController.getTurnsByIdDoctor(id);
+    }
+
     public List<Turn> getAllTurns() throws Exception {
         return persistenceController.getAllTurns();
     }

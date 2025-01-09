@@ -17,7 +17,7 @@ public class loginSV extends HttpServlet {
         String password=request.getParameter("password");
         String role=request.getParameter("role");
 
-        Object[] credentials = ctrl.authenticate(username, password, role);
+        Object[] credentials = ctrl.autenticate(username, password, role);
 
         if (credentials != null) {
 
@@ -32,10 +32,12 @@ public class loginSV extends HttpServlet {
             session.setAttribute("user_id", credentials[8]);
 
             if(role.equals("Doctor")) {
+                session.setAttribute("doctor_id", credentials[0]);
                 session.setAttribute("schedule_id", credentials[7]);
 
                 request.getRequestDispatcher("doctor.jsp").forward(request, response);
             } else if (role.equals("Secretary")) {
+                session.setAttribute("secretary_id", credentials[0]);
                 session.setAttribute("field", credentials[7]);
 
                 request.getRequestDispatcher("secretary.jsp").forward(request, response);

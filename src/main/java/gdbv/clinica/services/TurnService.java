@@ -160,6 +160,24 @@ public class TurnService {
         }
     }
 
+    public List<Turn> getTurnsByDoctor(Long id) throws Exception {
+        EntityManager em = null;
+        try {
+            em = emf.createEntityManager();
+            em.getTransaction().begin();
+            TypedQuery<Turn> query = em.createQuery("SELECT t FROM Turn t WHERE t.doctor.id = :id", Turn.class);
+            query.setParameter("id", id);
+            return query.getResultList();
+        } catch (Exception e) {
+            em.getTransaction().rollback();
+            throw new Exception("Error al consultar el turno: " + e.getMessage(), e);
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+        }
+    }
+
     public List<Turn> getAllTurns() throws Exception {
         EntityManager em = null;
         try {

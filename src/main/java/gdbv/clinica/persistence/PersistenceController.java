@@ -135,6 +135,10 @@ public class PersistenceController {
         return turnService.getTurnById(turnId);
     }
 
+    public List<Turn> getTurnsByIdDoctor(Long id) throws Exception {
+        return turnService.getTurnsByDoctor(id);
+    }
+
     public List<Turn> getAllTurns() throws Exception {
         return turnService.getAllTurns();
     }
