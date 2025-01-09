@@ -30,9 +30,9 @@ public class SvTurnos extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
+        PrintWriter out = response.getWriter();
 
         try {
             HttpSession session = request.getSession();
@@ -41,24 +41,56 @@ public class SvTurnos extends HttpServlet {
             if (doctorId != null) {
                 List<Turn> turns = control.getTurnsByIdDoctor(doctorId);
 
+                // Convertir a JSON usando Gson
                 Gson gson = new GsonBuilder()
                         .registerTypeAdapter(LocalTime.class, new LocalTimeAdapter())
-                        .registerTypeAdapter(LocalDate.class, new LocalDateAdapter()) // Added LocalDate adapter
+                        .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
                         .create();
-                String jsonTurns = gson.toJson(turns);
 
-                PrintWriter out = response.getWriter();
+                String jsonTurns = gson.toJson(turns);
                 out.print(jsonTurns);
-                out.flush();
             } else {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write(new Gson().toJson(Map.of("error", "Session expired or invalid doctor ID")));
+                out.print("{\"error\": \"Session expired or invalid doctor ID\"}");
             }
-
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            response.getWriter().write(new Gson().toJson(Map.of("error", "Server error: " + e.getMessage())));
-            e.printStackTrace(); // For local debugging
+            out.print("{\"error\": \"" + e.getMessage() + "\"}");
+            e.printStackTrace();
+        } finally {
+            out.flush();
+        }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String action = request.getParameter("action");
+
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        try {
+            if ("delete".equals(action)) {
+                Long turnId = Long.parseLong(request.getParameter("id"));
+                control.deleteTurn(turnId);
+                response.getWriter().write("{\"success\": true}");
+            }
+            else if ("update".equals(action)) {
+                Long turnId = Long.parseLong(request.getParameter("id"));
+                LocalDate newDate = LocalDate.parse(request.getParameter("date"));
+                LocalTime newTime = LocalTime.parse(request.getParameter("time"));
+
+                Turn turn = control.getTurnById(turnId);
+                turn.setApp_date(newDate);
+                turn.setApp_time(newTime);
+
+                control.updateTurn(turn);
+                response.getWriter().write("{\"success\": true}");
+            }
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.getWriter().write("{\"error\": \"" + e.getMessage() + "\"}");
         }
     }
 

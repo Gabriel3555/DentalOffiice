@@ -11241,3 +11241,19 @@ body {
   font-size: 0.75rem;
   border-radius: 0.375rem !important;
 }
+
+.swal2-popup {
+  font-size: 0.9rem !important;
+}
+
+.swal2-title {
+  font-size: 1.5rem !important;
+}
+
+.swal2-content {
+  font-size: 1rem !important;
+}
+
+.swal2-confirm, .swal2-cancel {
+  font-size: 0.9rem !important;
+}

@@ -14,6 +14,9 @@
     <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css" rel="stylesheet">
 
+    <!-- Agregar en el head -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.2/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.2/dist/sweetalert2.all.min.js"></script>
     <!-- Custom CSS -->
     <link href="css/styles.css" rel="stylesheet" />
 
@@ -23,8 +26,8 @@
 <body class="sb-nav-fixed">
 <%
     Long id = (Long) session.getAttribute("id");
-    String name = (String) session.getAttribute("name");
-    String lastName = (String) session.getAttribute("last_name");
+    String Name = (String) session.getAttribute("name");
+    String Lastname = (String) session.getAttribute("last_name");
     String email = (String) session.getAttribute("email");
     String phoneNumber = (String) session.getAttribute("phone_number");
     String address = (String) session.getAttribute("address");
@@ -76,7 +79,7 @@
             </div>
             <div class="sb-sidenav-footer">
                 <div class="small">Logged in as:</div>
-                <%=name + " " + lastName%>
+                <%=Name + " " + Lastname%>
             </div>
         </nav>
     </div>
@@ -180,47 +183,55 @@
         turnsTable = $('#turnsTable').DataTable({
             ajax: {
                 url: 'SvTurnos',
-                dataSrc: ''
+                dataSrc: function(data) {
+                    console.log('Datos recibidos:', data);
+                    return data;
+                }
             },
             columns: [
                 {
                     data: 'app_date',
-                    render: function(data) {
+                    render: function(data, type, row) {
+                        if (!data) return '';
                         return new Date(data).toLocaleDateString('es-ES');
                     }
                 },
                 {
                     data: 'app_time',
-                    render: function(data) {
-                        return data ? data.substring(0, 5) : '';
+                    render: function(data, type, row) {
+                        if (!data) return '';
+                        return data.substring(0, 5);
                     }
                 },
                 {
-                    data: 'patient',
-                    render: function(data) {
-                        return data ? `${data.name} ${data.lastName}` : 'No asignado';
+                    // Columna del paciente
+                    data: null,
+                    render: function(data, type, row) {
+                        if (row.patient && row.patient.name && row.patient.lastName) {
+                            return `${row.patient.name} ${row.patient.lastName}`.trim();
+                        }
+                        return 'No asignado';
                     }
                 },
                 {
+                    // Columna de acciones
                     data: 'id',
                     orderable: false,
                     searchable: false,
-                    render: function(data) {
+                    render: function(data, type, row) {
+                        if (!data) return '';
                         return `
-                                    <button class="btn btn-primary btn-sm me-2" onclick="editTurn(${data})">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-danger btn-sm" onclick="deleteTurn(${data})">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                `;
+                    <button class="btn btn-primary btn-sm me-2" onclick="editTurn(${data})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteTurn(${data})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
                     }
                 }
             ],
             responsive: true,
-            language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
-            },
             dom: 'Bfrtip',
             buttons: [
                 {
@@ -239,18 +250,252 @@
                     text: '<i class="fas fa-print"></i> Imprimir'
                 }
             ],
-            order: [[0, 'asc'], [1, 'asc']]
+            order: [[0, 'asc'], [1, 'asc']],
+            columnDefs: [
+                { targets: -1, className: 'text-center' }  // Centra la columna de acciones
+            ]
         });
     });
 
     function editTurn(turnId) {
-        console.log('Editar turno:', turnId);
+        // Obtener los datos del turno actual
+        const row = turnsTable.row($(`button[onclick="editTurn(${turnId})"]`).closest('tr')).data();
+
+        // Crear el modal de edición
+        const modalHtml = `
+        <div class="modal fade" id="editTurnModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Editar Turno</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editTurnForm">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha</label>
+                                <input type="date" class="form-control" id="editDate"
+                                       value="${row.app_date}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Hora</label>
+                                <input type="time" class="form-control" id="editTime"
+                                       value="${row.app_time.substring(0, 5)}" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" onclick="saveTurnChanges(${turnId})">Guardar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+        // Agregar el modal al documento y mostrarlo
+        $(modalHtml).appendTo('body');
+        const modal = new bootstrap.Modal(document.getElementById('editTurnModal'));
+        modal.show();
+
+        // Limpiar el modal cuando se cierre
+        document.getElementById('editTurnModal').addEventListener('hidden.bs.modal', function () {
+            this.remove();
+        });
+    }
+
+    function saveTurnChanges(turnId, newDate, newTime) {
+        if (!turnId) {
+            showErrorAlert('ID de turno no válido');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Guardando cambios...',
+            didOpen: () => {
+                Swal.showLoading();
+            },
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false
+        });
+
+        $.ajax({
+            url: 'SvTurnos',
+            type: 'POST',
+            data: {
+                action: 'update',
+                id: turnId,
+                date: newDate,
+                time: newTime
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Éxito!',
+                        text: response.message || 'El turno ha sido actualizado correctamente',
+                        confirmButtonColor: '#3085d6'
+                    }).then(() => {
+                        turnsTable.ajax.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'No se pudo actualizar el turno',
+                        confirmButtonColor: '#3085d6'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error en la solicitud:', {xhr, status, error});
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error al actualizar el turno. Por favor, intente nuevamente.',
+                    confirmButtonColor: '#3085d6'
+                });
+            }
+        });
+    }
+
+    // Agregar estas funciones después de la configuración del DataTable
+
+    function editTurn(turnId) {
+        // Obtener los datos del turno actual
+        const row = turnsTable.row($(`button[onclick="editTurn(${turnId})"]`).closest('tr')).data();
+
+        if (!row) {
+            showErrorAlert('No se pudieron obtener los datos del turno');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Editar Turno',
+            html: `
+            <form id="editTurnForm" class="mt-3">
+                <div class="mb-3">
+                    <label class="form-label">Fecha</label>
+                    <input type="date" class="form-control" id="editDate"
+                           value="${row.app_date}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Hora</label>
+                    <input type="time" class="form-control" id="editTime"
+                           value="${row.app_time ? row.app_time.substring(0, 5) : ''}" required>
+                </div>
+            </form>
+        `,
+            showCancelButton: true,
+            confirmButtonText: 'Guardar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            focusConfirm: false,
+            preConfirm: () => {
+                const date = document.getElementById('editDate').value;
+                const time = document.getElementById('editTime').value;
+                if (!date || !time) {
+                    Swal.showValidationMessage('Por favor complete todos los campos');
+                    return false;
+                }
+                return { date, time };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                saveTurnChanges(turnId, result.value.date, result.value.time);
+            }
+        });
     }
 
     function deleteTurn(turnId) {
-        if (confirm('¿Está seguro que desea eliminar este turno?')) {
-            console.log('Eliminar turno:', turnId);
+        if (!turnId) {
+            showErrorAlert('ID de turno no válido');
+            return;
         }
+
+        Swal.fire({
+            title: '¿Está seguro?',
+            text: "Esta acción no se puede deshacer",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Eliminando...',
+                    didOpen: () => {
+                        Swal.showLoading();
+                    },
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false
+                });
+
+                $.ajax({
+                    url: 'SvTurnos',
+                    type: 'POST',
+                    data: {
+                        action: 'delete',
+                        id: turnId
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '¡Eliminado!',
+                                text: response.message || 'El turno ha sido eliminado correctamente',
+                                confirmButtonColor: '#3085d6'
+                            }).then(() => {
+                                turnsTable.ajax.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message || 'No se pudo eliminar el turno',
+                                confirmButtonColor: '#3085d6'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error en la solicitud:', {xhr, status, error});
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error al eliminar el turno. Por favor, intente nuevamente.',
+                            confirmButtonColor: '#3085d6'
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    // Función auxiliar para mostrar mensajes de error
+    function showErrorAlert(message) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: message,
+            confirmButtonColor: '#3085d6'
+        });
+    }
+
+    // Función auxiliar para mostrar mensajes de éxito
+    function showSuccessAlert(message) {
+        Swal.fire({
+            icon: 'success',
+            title: '¡Éxito!',
+            text: message,
+            confirmButtonColor: '#3085d6'
+        });
     }
 
     function backToInfo() {
