@@ -160,17 +160,21 @@ public class TurnService {
         }
     }
 
-    public List<Turn> getTurnsByDoctor(Long id) throws Exception {
+    public List<Turn> getTurnsByDoctor(Long doctorId) throws Exception {
         EntityManager em = null;
         try {
             em = emf.createEntityManager();
             em.getTransaction().begin();
-            TypedQuery<Turn> query = em.createQuery("SELECT t FROM Turn t WHERE t.doctor.id = :id", Turn.class);
-            query.setParameter("id", id);
+
+            // JPQL query to select only necessary fields, avoiding circular references
+            TypedQuery<Turn> query = em.createQuery(
+                    "SELECT new Turn(t.id, t.app_date, t.app_time, t.patient.id, t.doctor.id, t.patient.name, t.patient.lastName) " +
+                            "FROM Turn t WHERE t.doctor.id = :doctorId ORDER BY t.app_date, t.app_time", Turn.class);
+            query.setParameter("doctorId", doctorId);
             return query.getResultList();
         } catch (Exception e) {
             em.getTransaction().rollback();
-            throw new Exception("Error al consultar el turno: " + e.getMessage(), e);
+            throw new Exception("Error fetching turns: " + e.getMessage(), e);
         } finally {
             if (em != null) {
                 em.close();
