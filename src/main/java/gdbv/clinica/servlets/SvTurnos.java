@@ -65,32 +65,27 @@ public class SvTurnos extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String action = request.getParameter("action");
-
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
+        PrintWriter out = response.getWriter();
 
         try {
+            String action = request.getParameter("action");
             if ("delete".equals(action)) {
-                Long turnId = Long.parseLong(request.getParameter("id"));
-                control.deleteTurn(turnId);
-                response.getWriter().write("{\"success\": true}");
-            }
-            else if ("update".equals(action)) {
-                Long turnId = Long.parseLong(request.getParameter("id"));
-                LocalDate newDate = LocalDate.parse(request.getParameter("date"));
-                LocalTime newTime = LocalTime.parse(request.getParameter("time"));
+                String idStr = request.getParameter("id");
+                System.out.println("ID recibido para eliminar: " + idStr);
 
-                Turn turn = control.getTurnById(turnId);
-                turn.setApp_date(newDate);
-                turn.setApp_time(newTime);
-
-                control.updateTurn(turn);
-                response.getWriter().write("{\"success\": true}");
+                if (idStr != null && !idStr.trim().isEmpty()) {
+                    Long turnId = Long.parseLong(idStr);
+                    control.deleteTurn(turnId);
+                    out.print("{\"success\": true, \"message\": \"Turno eliminado correctamente\"}");
+                } else {
+                    out.print("{\"success\": false, \"message\": \"ID de turno no válido\"}");
+                }
             }
         } catch (Exception e) {
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            response.getWriter().write("{\"error\": \"" + e.getMessage() + "\"}");
+            e.printStackTrace();
+            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
         }
     }
 

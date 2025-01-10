@@ -183,15 +183,16 @@
         turnsTable = $('#turnsTable').DataTable({
             ajax: {
                 url: 'SvTurnos',
-                dataSrc: function(data) {
-                    console.log('Datos recibidos:', data);
-                    return data;
+                dataSrc: function(json) {
+                    console.log('Datos recibidos del servidor:', JSON.stringify(json, null, 2));
+                    return json;
                 }
             },
             columns: [
                 {
                     data: 'app_date',
                     render: function(data, type, row) {
+                        console.log('Fila completa en fecha:', row);
                         if (!data) return '';
                         return new Date(data).toLocaleDateString('es-ES');
                     }
@@ -204,33 +205,60 @@
                     }
                 },
                 {
-                    // Columna del paciente
                     data: null,
                     render: function(data, type, row) {
                         if (row.patient && row.patient.name && row.patient.lastName) {
-                            return `${row.patient.name} ${row.patient.lastName}`.trim();
+                            return row.patient.name + ' ' + row.patient.lastName;
                         }
                         return 'No asignado';
                     }
                 },
                 {
-                    // Columna de acciones
-                    data: 'id',
+                    data: null,
                     orderable: false,
                     searchable: false,
                     render: function(data, type, row) {
-                        if (!data) return '';
+                        const turnId = row.id;
+                        console.log('Renderizando fila con ID:', turnId);
+
                         return `
-                    <button class="btn btn-primary btn-sm me-2" onclick="editTurn(${data})">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteTurn(${data})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                `;
+                    <div class="btn-group" role="group">
+                        <button id="edit_${turnId}"
+                                type="button"
+                                class="btn btn-primary btn-sm">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button id="delete_${turnId}"
+                                type="button"
+                                class="btn btn-danger btn-sm">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>`;
                     }
                 }
-            ],
+            ],drawCallback: function(settings) {
+                const table = this.api();
+                const data = table.data();
+
+                // Remover eventos anteriores
+                $('button[id^="delete_"]').off();
+                $('button[id^="edit_"]').off();
+
+                // Agregar nuevos eventos
+                data.each(function(row) {
+                    const turnId = row.id;
+
+                    $(`#delete_${turnId}`).on('click', function() {
+                        console.log('Click en eliminar para ID:', turnId);
+                        handleDelete(turnId);
+                    });
+
+                    $(`#edit_${turnId}`).on('click', function() {
+                        console.log('Click en editar para ID:', turnId);
+                        handleEdit(turnId);
+                    });
+                });
+            },
             responsive: true,
             dom: 'Bfrtip',
             buttons: [
@@ -257,50 +285,204 @@
         });
     });
 
+    function handleDelete(turnId) {
+        console.log('Iniciando eliminación para turno ID:', turnId);
+
+        if (!turnId) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'ID de turno no válido'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: '¿Está seguro?',
+            text: "Esta acción no se puede deshacer",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                console.log('Enviando petición de eliminación para ID:', turnId);
+
+                $.ajax({
+                    url: 'SvTurnos',
+                    type: 'POST',
+                    data: {
+                        action: 'delete',
+                        id: turnId
+                    },
+                    success: function(response) {
+                        console.log('Respuesta del servidor:', response);
+                        try {
+                            const jsonResponse = typeof response === 'string' ? JSON.parse(response) : response;
+
+                            if (jsonResponse.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: '¡Éxito!',
+                                    text: 'Turno eliminado correctamente'
+                                }).then(() => {
+                                    turnsTable.ajax.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: jsonResponse.message || 'Error al eliminar el turno'
+                                });
+                            }
+                        } catch (e) {
+                            console.error('Error al procesar la respuesta:', e);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Error al procesar la respuesta del servidor'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error en la petición:', {xhr, status, error});
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error al eliminar el turno'
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    function handleEdit(turnId) {
+        console.log('Iniciando edición para turno ID:', turnId);
+        // Implementa la lógica de edición aquí
+    }
+
     function editTurn(turnId) {
         // Obtener los datos del turno actual
-        const row = turnsTable.row($(`button[onclick="editTurn(${turnId})"]`).closest('tr')).data();
+        const row = turnsTable.row($(`button[data-turn-id="${turnId}"]`).closest('tr')).data();
 
-        // Crear el modal de edición
-        const modalHtml = `
-        <div class="modal fade" id="editTurnModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Editar Turno</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="editTurnForm">
-                            <div class="mb-3">
-                                <label class="form-label">Fecha</label>
-                                <input type="date" class="form-control" id="editDate"
-                                       value="${row.app_date}" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Hora</label>
-                                <input type="time" class="form-control" id="editTime"
-                                       value="${row.app_time.substring(0, 5)}" required>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" onclick="saveTurnChanges(${turnId})">Guardar</button>
-                    </div>
+        if (!row) {
+            showErrorAlert('No se pudieron obtener los datos del turno');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Editar Turno',
+            html: `
+            <form id="editTurnForm" class="mt-3">
+                <div class="mb-3">
+                    <label class="form-label">Fecha</label>
+                    <input type="date" class="form-control" id="editDate"
+                           value="${row.app_date}" required>
                 </div>
-            </div>
-        </div>
-    `;
+                <div class="mb-3">
+                    <label class="form-label">Hora</label>
+                    <input type="time" class="form-control" id="editTime"
+                           value="${row.app_time ? row.app_time.substring(0, 5) : ''}" required>
+                </div>
+            </form>
+        `,
+            showCancelButton: true,
+            confirmButtonText: 'Guardar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            focusConfirm: false,
+            preConfirm: () => {
+                const date = document.getElementById('editDate').value;
+                const time = document.getElementById('editTime').value;
+                if (!date || !time) {
+                    Swal.showValidationMessage('Por favor complete todos los campos');
+                    return false;
+                }
+                return { date, time };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                saveTurnChanges(turnId, result.value.date, result.value.time);
+            }
+        });
+    }
 
-        // Agregar el modal al documento y mostrarlo
-        $(modalHtml).appendTo('body');
-        const modal = new bootstrap.Modal(document.getElementById('editTurnModal'));
-        modal.show();
+    // Función global para eliminar
+    function deleteTurn(turnId) {
+        console.log('Ejecutando deleteTurn con ID:', turnId);
 
-        // Limpiar el modal cuando se cierre
-        document.getElementById('editTurnModal').addEventListener('hidden.bs.modal', function () {
-            this.remove();
+        if (!turnId || turnId === 'undefined' || turnId === '') {
+            console.error('ID de turno inválido:', turnId);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'ID de turno no válido'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: '¿Está seguro?',
+            text: "Esta acción no se puede deshacer",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'SvTurnos',
+                    type: 'POST',
+                    data: {
+                        action: 'delete',
+                        id: turnId
+                    },
+                    success: function(response) {
+                        console.log('Respuesta del servidor:', response);
+                        try {
+                            // Intentar parsear la respuesta si viene como string
+                            const jsonResponse = typeof response === 'string' ? JSON.parse(response) : response;
+
+                            if (jsonResponse.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: '¡Éxito!',
+                                    text: 'Turno eliminado correctamente'
+                                }).then(() => {
+                                    turnsTable.ajax.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: jsonResponse.message || 'Error al eliminar el turno'
+                                });
+                            }
+                        } catch (e) {
+                            console.error('Error al procesar la respuesta:', e);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Error al procesar la respuesta del servidor'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error en la petición:', {xhr, status, error});
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error al eliminar el turno'
+                        });
+                    }
+                });
+            }
         });
     }
 
@@ -361,122 +543,7 @@
         });
     }
 
-    // Agregar estas funciones después de la configuración del DataTable
 
-    function editTurn(turnId) {
-        // Obtener los datos del turno actual
-        const row = turnsTable.row($(`button[onclick="editTurn(${turnId})"]`).closest('tr')).data();
-
-        if (!row) {
-            showErrorAlert('No se pudieron obtener los datos del turno');
-            return;
-        }
-
-        Swal.fire({
-            title: 'Editar Turno',
-            html: `
-            <form id="editTurnForm" class="mt-3">
-                <div class="mb-3">
-                    <label class="form-label">Fecha</label>
-                    <input type="date" class="form-control" id="editDate"
-                           value="${row.app_date}" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Hora</label>
-                    <input type="time" class="form-control" id="editTime"
-                           value="${row.app_time ? row.app_time.substring(0, 5) : ''}" required>
-                </div>
-            </form>
-        `,
-            showCancelButton: true,
-            confirmButtonText: 'Guardar',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            focusConfirm: false,
-            preConfirm: () => {
-                const date = document.getElementById('editDate').value;
-                const time = document.getElementById('editTime').value;
-                if (!date || !time) {
-                    Swal.showValidationMessage('Por favor complete todos los campos');
-                    return false;
-                }
-                return { date, time };
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                saveTurnChanges(turnId, result.value.date, result.value.time);
-            }
-        });
-    }
-
-    function deleteTurn(turnId) {
-        if (!turnId) {
-            showErrorAlert('ID de turno no válido');
-            return;
-        }
-
-        Swal.fire({
-            title: '¿Está seguro?',
-            text: "Esta acción no se puede deshacer",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                    title: 'Eliminando...',
-                    didOpen: () => {
-                        Swal.showLoading();
-                    },
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    showConfirmButton: false
-                });
-
-                $.ajax({
-                    url: 'SvTurnos',
-                    type: 'POST',
-                    data: {
-                        action: 'delete',
-                        id: turnId
-                    },
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: '¡Eliminado!',
-                                text: response.message || 'El turno ha sido eliminado correctamente',
-                                confirmButtonColor: '#3085d6'
-                            }).then(() => {
-                                turnsTable.ajax.reload();
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: response.message || 'No se pudo eliminar el turno',
-                                confirmButtonColor: '#3085d6'
-                            });
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error en la solicitud:', {xhr, status, error});
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Error al eliminar el turno. Por favor, intente nuevamente.',
-                            confirmButtonColor: '#3085d6'
-                        });
-                    }
-                });
-            }
-        });
-    }
 
     // Función auxiliar para mostrar mensajes de error
     function showErrorAlert(message) {
