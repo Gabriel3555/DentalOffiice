@@ -30,13 +30,23 @@ A comprehensive web-based dental office management system developed with Java EE
 ## Project Structure
 
 src/
+|
 ├── main/
+|
 │   ├── java/
+|   |
 │   │   └── gdbv/clinica/
+|   |
 │   │       ├── exceptions/    # Excepciones personalizadas
+|   |       |
 │   │       ├── models/        # Entidades y modelos
+|   |       |
 │   │       ├── persistence/   # Capa de persistencia
+|   |       |
 │   │       ├── services/      # Lógica de negocio
+|   |       |
 │   │       └── servlets/      # Controladores
+|   |       
 │   ├── resources/            # Archivos de configuración
+|   |
 │   └── webapp/              # Archivos web y JSPs
