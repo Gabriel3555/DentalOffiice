@@ -68,7 +68,7 @@
                     <div class="collapse" id="collapseLayouts" aria-labelledby="headingOne" data-bs-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
                             <a class="nav-link" href="#" id="verTurnos">Ver turnos</a>
-                            <a class="nav-link" href="#">Agregar Turnos</a>
+                            <a class="nav-link" href="agregar">Agregar Turnos</a>
                         </nav>
                     </div>
                     <a class="nav-link" href="#">
@@ -132,6 +132,49 @@
                     </div>
                 </div>
             </div>
+            <div class="container-fluid px-4" id="create-turn-container" style="display: none;">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-calendar-plus me-2"></i>Crear Nuevo Turno</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="createTurnForm" action="SvTurnos" method="POST">
+                            <input type="hidden" name="action" value="create">
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="patientId" class="form-label">ID del Paciente</label>
+                                    <input type="number" class="form-control" id="patientId" name="patientId" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="doctorId" class="form-label">ID del Doctor</label>
+                                    <input type="number" class="form-control" id="doctorId" name="doctorId" required>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="date" class="form-label">Fecha</label>
+                                    <input type="date" class="form-control" id="date" name="date" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="time" class="form-label">Hora</label>
+                                    <input type="time" class="form-control" id="time" name="time" required>
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="button" class="btn btn-secondary me-md-2" onclick="backToInfo()">
+                                    <i class="fas fa-arrow-left me-2"></i>Cancelar
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Guardar Turno
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </main>
         <footer class="py-4 bg-light mt-auto">
             <div class="container-fluid px-4">
@@ -169,6 +212,14 @@
 
 <!-- Custom JS -->
 <script>
+
+    document.querySelector('a[href="agregar"].nav-link').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('info-container').style.display = 'none';
+        document.getElementById('turns-container').style.display = 'none';
+        document.getElementById('create-turn-container').style.display = 'block';
+    });
+
     let turnsTable;
 
     document.getElementById('verTurnos').addEventListener('click', function(e) {
@@ -668,6 +719,97 @@
         document.getElementById('turns-container').style.display = 'none';
         document.getElementById('info-container').style.display = 'block';
     }
+
+    $(document).ready(function() {
+        $('#createTurnForm').on('submit', function(e) {
+            e.preventDefault();
+
+            // Obtener los valores del formulario
+            const patientId = $('#patientId').val();
+            const doctorId = $('#doctorId').val();
+            const date = $('#date').val();
+            const time = $('#time').val();
+
+            // Mostrar SweetAlert de confirmación
+            Swal.fire({
+                title: '¿Confirmar turno?',
+                html: `
+                <div class="text-left">
+                    <p><strong>Paciente ID:</strong> ${patientId}</p>
+                    <p><strong>Doctor ID:</strong> ${doctorId}</p>
+                    <p><strong>Fecha:</strong> ${date}</p>
+                    <p><strong>Hora:</strong> ${time}</p>
+                </div>
+            `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, crear turno',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Si el usuario confirma, enviar la petición AJAX
+                    $.ajax({
+                        url: 'SvTurnos',
+                        type: 'POST',
+                        data: {
+                            action: 'create',
+                            patientId: patientId,
+                            doctorId: doctorId,
+                            date: date,
+                            time: time
+                        },
+                        success: function(response) {
+                            try {
+                                const jsonResponse = typeof response === 'string' ? JSON.parse(response) : response;
+
+                                if (jsonResponse.success) {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: '¡Éxito!',
+                                        text: 'Turno creado correctamente',
+                                        confirmButtonColor: '#3085d6'
+                                    }).then(() => {
+                                        // Limpiar el formulario
+                                        $('#createTurnForm')[0].reset();
+                                        // Opcional: redirigir o actualizar la tabla de turnos
+                                        if (typeof turnsTable !== 'undefined') {
+                                            turnsTable.ajax.reload();
+                                        }
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error',
+                                        text: jsonResponse.message || 'Error al crear el turno',
+                                        confirmButtonColor: '#3085d6'
+                                    });
+                                }
+                            } catch (e) {
+                                console.error('Error al procesar la respuesta:', e);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'Error al procesar la respuesta del servidor',
+                                    confirmButtonColor: '#3085d6'
+                                });
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Error en la solicitud:', {xhr, status, error});
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Error al crear el turno. Por favor, intente nuevamente.',
+                                confirmButtonColor: '#3085d6'
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    });
 </script>
 </body>
 </html>

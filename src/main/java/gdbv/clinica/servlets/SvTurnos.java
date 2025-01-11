@@ -20,7 +20,6 @@ import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Map;
 
 @WebServlet(name = "SvTurnos", urlPatterns = {"/SvTurnos"})
 public class SvTurnos extends HttpServlet {
@@ -104,6 +103,20 @@ public class SvTurnos extends HttpServlet {
                     response.setContentType("application/json");
                     out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
                     e.printStackTrace();
+                }
+            } else if ("create".equals(action)) {
+                Long doctorId = Long.parseLong(request.getParameter("doctorId"));
+                Long patientId = Long.parseLong(request.getParameter("patientId"));
+                LocalDate date = LocalDate.parse(request.getParameter("date"));
+                LocalTime time = LocalTime.parse(request.getParameter("time"));
+
+                try {
+                    Turn newTurn = control.createTurn(doctorId, patientId, date, time);
+                    response.setContentType("application/json");
+                    out.print("{\"success\": true, \"message\": \"Turno creado correctamente\"}");
+                } catch (Exception e) {
+                    response.setContentType("application/json");
+                    out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
                 }
             }
         } catch (Exception e) {
