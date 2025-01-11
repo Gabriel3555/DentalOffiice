@@ -32,7 +32,7 @@
     String phoneNumber = (String) session.getAttribute("phone_number");
     String address = (String) session.getAttribute("address");
     String birthDate = (String) session.getAttribute("birth_date");
-    String scheduleId = (String) session.getAttribute("schedule_id");
+    Long scheduleId = (Long) session.getAttribute("schedule_id");
     Long userId = (Long) session.getAttribute("user_id");
 %>
 <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
@@ -359,9 +359,108 @@
         });
     }
 
+    // Reemplazar la función handleEdit existente en doctor.jsp con esta versión:
+
     function handleEdit(turnId) {
         console.log('Iniciando edición para turno ID:', turnId);
-        // Implementa la lógica de edición aquí
+
+        // Obtener los datos del turno actual
+        const row = turnsTable.row($(`#edit_${turnId}`).closest('tr')).data();
+
+        if (!row) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudieron obtener los datos del turno'
+            });
+            return;
+        }
+
+        // Formatear la fecha para el input date
+        const formattedDate = row.app_date ? row.app_date.split('T')[0] : '';
+        // Formatear la hora para el input time
+        const formattedTime = row.app_time ? row.app_time.substring(0, 5) : '';
+
+        Swal.fire({
+            title: 'Editar Turno',
+            html: `
+            <form id="editTurnForm" class="mt-3">
+                <div class="mb-3">
+                    <label class="form-label">Fecha</label>
+                    <input type="date" class="form-control" id="editDate"
+                           value="${formattedDate}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Hora</label>
+                    <input type="time" class="form-control" id="editTime"
+                           value="${formattedTime}" required>
+                </div>
+            </form>
+        `,
+            showCancelButton: true,
+            confirmButtonText: 'Guardar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            focusConfirm: false,
+            preConfirm: () => {
+                const date = document.getElementById('editDate').value;
+                const time = document.getElementById('editTime').value;
+                if (!date || !time) {
+                    Swal.showValidationMessage('Por favor complete todos los campos');
+                    return false;
+                }
+                return { date, time };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'SvTurnos',
+                    type: 'POST',
+                    data: {
+                        action: 'update',
+                        id: turnId,
+                        date: result.value.date,
+                        time: result.value.time
+                    },
+                    success: function(response) {
+                        try {
+                            const jsonResponse = typeof response === 'string' ? JSON.parse(response) : response;
+                            if (jsonResponse.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: '¡Éxito!',
+                                    text: 'Turno actualizado correctamente'
+                                }).then(() => {
+                                    turnsTable.ajax.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: jsonResponse.message || 'Error al actualizar el turno'
+                                });
+                            }
+                        } catch (e) {
+                            console.error('Error al procesar la respuesta:', e);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Error al procesar la respuesta del servidor'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error en la solicitud:', {xhr, status, error});
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error al actualizar el turno'
+                        });
+                    }
+                });
+            }
+        });
     }
 
     function editTurn(turnId) {

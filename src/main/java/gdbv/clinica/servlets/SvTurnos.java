@@ -82,6 +82,29 @@ public class SvTurnos extends HttpServlet {
                 } else {
                     out.print("{\"success\": false, \"message\": \"ID de turno no válido\"}");
                 }
+            } else if ("update".equals(action)) {
+                try {
+                    Long turnId = Long.parseLong(request.getParameter("id"));
+                    LocalDate date = LocalDate.parse(request.getParameter("date"));
+                    LocalTime time = LocalTime.parse(request.getParameter("time"));
+
+                    Turn turn = control.getTurnById(turnId);
+                    if (turn != null) {
+                        turn.setApp_date(date);
+                        turn.setApp_time(time);
+                        control.updateTurn(turn);
+
+                        response.setContentType("application/json");
+                        out.print("{\"success\": true, \"message\": \"Turno actualizado correctamente\"}");
+                    } else {
+                        response.setContentType("application/json");
+                        out.print("{\"success\": false, \"message\": \"Turno no encontrado\"}");
+                    }
+                } catch (Exception e) {
+                    response.setContentType("application/json");
+                    out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+                    e.printStackTrace();
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
