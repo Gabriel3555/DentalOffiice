@@ -1,28 +1,28 @@
-# Dental Office Management System
+# Sistema de Gestión de Consultorio Dental
 
-A comprehensive web-based dental office management system developed with Java EE and MVC architecture.
+Un completo sistema web para la administración de consultorios dentales, desarrollado con Java EE y arquitectura MVC.
 
-## Features
+## Características
 
-- User management with roles (Doctors and Secretaries)
-- Patient management and medical records
-- Appointment scheduling system
-- Doctor schedule management
-- Responsive interface built with Bootstrap
+- Gestión de usuarios con roles (Doctores y Secretarias)  
+- Administración de pacientes e historiales médicos  
+- Sistema de programación de citas  
+- Gestión de horarios de doctores  
+- Interfaz responsiva construida con Bootstrap  
 
-## Technologies Used
+## Tecnologías Utilizadas
 
-- Java EE
-- Jakarta Persistence (JPA)
-- MySQL
-- Bootstrap 5
-- jQuery
-- DataTables
-- SweetAlert2
+- Java EE  
+- Jakarta Persistence (JPA)  
+- MySQL  
+- Bootstrap 5  
+- jQuery  
+- DataTables  
+- SweetAlert2  
 
-## Prerequisites
+## Requisitos Previos
 
-- JDK 11 or higher
-- MySQL 8.0
-- Maven
-- Jakarta EE compatible application server (e.g., TomEE, GlassFish)
+- JDK 11 o superior  
+- MySQL 8.0  
+- Maven  
+- Servidor de aplicaciones compatible con Jakarta EE (por ejemplo, TomEE, GlassFish)  
